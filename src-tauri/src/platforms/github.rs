@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 
-use crate::utils::dirs::ensure_dir;
+use crate::{
+    user::{avatar::UserAvatar, User},
+    utils::dirs::DataPath,
+};
 use api::GitHubAPI;
 use api_models::{GitHubApiRepoLicense, GitHubApiRepoOrg, GitHubApiRepoOwner, GitHubApiRepoTree};
-use chrono::Utc;
 use models::{
-    GitHubRepo, GitHubRepoCustomProperty, GitHubRepoData, GitHubRepoLicense, GitHubRepoOrg,
-    GitHubRepoOwner, GitHubUser, GitHubUserData,
+    DbGitHubRepo, DbGitHubRepoCustomProperty, GitHubRepoData, DbGitHubRepoLicense, DbGitHubRepoOrg,
+    DbGitHubRepoOwner, DbGitHubUser, GitHubUserData,
 };
 use sqlx::{prelude::FromRow, SqlitePool};
 use tauri::AppHandle;
@@ -17,12 +19,13 @@ use crate::{
     commands::repo::{AddRepoProgress, DbPlatformRepo, RepoPreviewOwner},
     error::AppResult,
     repo::download_readme_assets,
-    utils::{data::progress_percentage, dirs::get_data_dir, image::download_image},
+    utils::{data::progress_percentage, image::download_image},
 };
 
 pub mod api;
 pub mod api_models;
 pub mod models;
+pub mod user;
 
 async fn add_github_repo_owner(
     github_repo_id: i64,
@@ -246,20 +249,7 @@ async fn add_github_repo_tree(
     Ok(())
 }
 
-async fn check_github_user_exists(user: &str, pool: &SqlitePool) -> AppResult<bool> {
-    let exists_query = "SELECT id FROM github_user WHERE login = ?";
-    let exists = sqlx::query(exists_query)
-        .bind(user)
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| {
-            error!("{:?}", e);
-            "Error checking if user exists in database"
-        })?;
-    Ok(exists.is_some())
-}
-
-async fn add_github_repo_owner_user(
+async fn add_github_user(
     user: &str,
     repo: &str,
     api: &GitHubAPI,
@@ -268,8 +258,8 @@ async fn add_github_repo_owner_user(
 ) -> AppResult<()> {
     AddRepoProgress::Owner.send("github", user, repo, 0, 0, 5, app);
 
-    let user_exists = check_github_user_exists(user, pool).await?;
-    if user_exists {
+    let exists = User::exists(user, pool).await?;
+    if exists {
         AddRepoProgress::Owner.send("github", user, repo, 100, 1, 1, app);
         return Ok(());
     }
@@ -277,21 +267,7 @@ async fn add_github_repo_owner_user(
     let github_user = api.fetch_user(user, pool).await?;
     AddRepoProgress::Owner.send("github", user, repo, 20, 1, 5, app);
 
-    let user_query =
-        "INSERT INTO user (platform, user, created_at, updated_at) VALUES (?, ?, ?, ?)";
-    let user_id = sqlx::query(user_query)
-        .bind("github")
-        .bind(user)
-        .bind(Utc::now().to_rfc3339())
-        .bind(Utc::now().to_rfc3339())
-        .execute(pool)
-        .await
-        .map_err(|e| {
-            error!("{:?}", e);
-            "Error adding repository data into database"
-        })?
-        .last_insert_rowid();
-
+    User::add(user, "github", pool).await?;
     AddRepoProgress::Owner.send("github", user, repo, 40, 2, 5, app);
 
     let query = "
@@ -339,10 +315,13 @@ async fn add_github_repo_owner_user(
     AddRepoProgress::Owner.send("github", user, repo, 60, 3, 5, app);
 
     let (bytes, ext) = download_image(&github_user.avatar_url).await?;
-    let avatar_query = "INSERT INTO user_avatar (user_id, platform, ext, url) VALUES (?, ?, ?, ?)";
+    let ext_str = ext
+        .as_ref()
+        .map(|e| format!(".{e}"))
+        .unwrap_or("".to_string());
+    let avatar_query = "INSERT INTO user_avatar (user_id, ext, url) VALUES (?, ?, ?)";
     let avatar_id = sqlx::query(avatar_query)
         .bind(user_id)
-        .bind("github")
         .bind(ext)
         .bind(&github_user.avatar_url)
         .execute(pool)
@@ -351,9 +330,9 @@ async fn add_github_repo_owner_user(
 
     AddRepoProgress::Owner.send("github", user, repo, 80, 4, 5, app);
 
-    let dir = get_data_dir().join("assets/avatars");
-    ensure_dir(&dir).await?;
-    let path = dir.join(avatar_id.to_string());
+    let path = DataPath::Avatar(&format!("{avatar_id}{ext_str}"))
+        .ensure()
+        .await?;
     let mut file = fs::File::create(&path).await.map_err(|e| {
         error!("{:?}", e);
         "Error creating avatar image file"
@@ -496,7 +475,7 @@ pub async fn add_github_repo(
         AddRepoProgress::Readme.send("github", user, repo, 100, 2, 2, app);
     }
 
-    add_github_repo_owner_user(user, repo, api, pool, app).await?;
+    add_github_user(user, repo, api, pool, app).await?;
 
     Ok(())
 }
@@ -549,19 +528,7 @@ pub async fn get_github_repo_preview(
         .fetch_one(pool)
         .await?;
 
-    let avatar_id_query = "SELECT id FROM user_avatar WHERE user_id = ?";
-    let avatar_id = sqlx::query_scalar::<_, i64>(avatar_id_query)
-        .bind(user_id)
-        .fetch_one(pool)
-        .await
-        .map_err(|e| {
-            error!("{:?}", e);
-            "Error getting user avatar id from database"
-        })?;
-
-    let dir = get_data_dir().join("assets/avatars");
-    let path = dir.join(avatar_id.to_string());
-    let avatar = path.to_str().unwrap().to_string();
+    let avatar = UserAvatar::get(user_id, pool).await?.path_str();
 
     info!(
         "got github repo preview from database in {:?}",
@@ -587,7 +554,7 @@ pub async fn get_github_repo_preview(
 
 pub async fn get_github_repo(repo_id: i64, pool: &SqlitePool) -> AppResult<GitHubRepoData> {
     let query = "SELECT * FROM github_repo WHERE repo_id = ?";
-    let github_repo = sqlx::query_as::<_, GitHubRepo>(query)
+    let github_repo = sqlx::query_as::<_, DbGitHubRepo>(query)
         .bind(repo_id)
         .fetch_one(pool)
         .await
@@ -597,7 +564,7 @@ pub async fn get_github_repo(repo_id: i64, pool: &SqlitePool) -> AppResult<GitHu
         })?;
 
     let owner_query = "SELECT * FROM github_repo_owner WHERE github_repo_id = ?";
-    let owner = sqlx::query_as::<_, GitHubRepoOwner>(owner_query)
+    let owner = sqlx::query_as::<_, DbGitHubRepoOwner>(owner_query)
         .bind(github_repo.id)
         .fetch_one(pool)
         .await
@@ -607,7 +574,7 @@ pub async fn get_github_repo(repo_id: i64, pool: &SqlitePool) -> AppResult<GitHu
         })?;
 
     let org_query = "SELECT * FROM github_repo_org WHERE github_repo_id = ?";
-    let org = sqlx::query_as::<_, GitHubRepoOrg>(org_query)
+    let org = sqlx::query_as::<_, DbGitHubRepoOrg>(org_query)
         .bind(github_repo.id)
         .fetch_optional(pool)
         .await
@@ -627,7 +594,7 @@ pub async fn get_github_repo(repo_id: i64, pool: &SqlitePool) -> AppResult<GitHu
         })?;
 
     let license_query = "SELECT * FROM github_repo_license WHERE github_repo_id = ?";
-    let license = sqlx::query_as::<_, GitHubRepoLicense>(license_query)
+    let license = sqlx::query_as::<_, DbGitHubRepoLicense>(license_query)
         .bind(github_repo.id)
         .fetch_one(pool)
         .await
@@ -638,7 +605,7 @@ pub async fn get_github_repo(repo_id: i64, pool: &SqlitePool) -> AppResult<GitHu
 
     let custom_properties_query =
         "SELECT * FROM github_repo_custom_property WHERE github_repo_id = ?";
-    let custom_properties = sqlx::query_as::<_, GitHubRepoCustomProperty>(custom_properties_query)
+    let custom_properties = sqlx::query_as::<_, DbGitHubRepoCustomProperty>(custom_properties_query)
         .bind(github_repo.id)
         .fetch_all(pool)
         .await
@@ -659,7 +626,7 @@ pub async fn get_github_repo(repo_id: i64, pool: &SqlitePool) -> AppResult<GitHu
 
 pub async fn get_github_user(user_id: i64, pool: &SqlitePool) -> AppResult<GitHubUserData> {
     let query = "SELECT * FROM github_user WHERE user_id = ?";
-    let github_user = sqlx::query_as::<_, GitHubUser>(query)
+    let github_user = sqlx::query_as::<_, DbGitHubUser>(query)
         .bind(user_id)
         .fetch_one(pool)
         .await

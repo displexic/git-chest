@@ -7,7 +7,7 @@ use crate::{
     error::{AppError, AppResult},
     platforms::github::api_models::{GitHubApiRepoTree, GitHubApiUser},
     utils::{
-        data::{parse_body, parse_header, parse_header_num},
+        data::{parse_header, parse_header_num},
         rate_limit::{check_rate_limit, update_rate_limit},
     },
 };
@@ -72,8 +72,11 @@ impl GitHubAPI {
         self.update_rate_limit(res.headers(), pool).await?;
 
         let body = res.text().await?;
-        let json_body: GitHubApiRepo =
-            parse_body(&body, "Error parsing repository from GitHub API")?;
+        let json_body: GitHubApiRepo = serde_json::from_str(&body).map_err(|e| {
+            error!("raw response body: {}", body);
+            error!("{:?}", e);
+            "Error parsing repository from GitHub API"
+        })?;
 
         info!("fetching github repo took {:?}", start.elapsed());
 
@@ -187,7 +190,11 @@ impl GitHubAPI {
         self.update_rate_limit(res.headers(), pool).await?;
 
         let body = res.text().await?;
-        let json_body: GitHubApiUser = parse_body(&body, "Error parsing user from GitHub API")?;
+        let json_body: GitHubApiUser = serde_json::from_str(&body).map_err(|e| {
+            error!("raw response body: {}", body);
+            error!("{:?}", e);
+            "Error parsing user from GitHub API"
+        })?;
 
         info!("fetching github user took {:?}", start.elapsed());
 

@@ -325,14 +325,18 @@ pub async fn get_repo(
         })?;
 
     let readme_query = "SELECT content FROM repo_readme WHERE repo_id = ?";
-    let readme = sqlx::query_scalar::<_, String>(readme_query)
-        .bind(id)
-        .fetch_optional(&state.pool)
-        .await
-        .map_err(|e| {
-            error!("{:?}", e);
-            "Error querying optional repository readme from database"
-        })?;
+    let readme = if tree_id.is_none() {
+        sqlx::query_scalar::<_, String>(readme_query)
+            .bind(id)
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| {
+                error!("{:?}", e);
+                "Error querying optional repository readme from database"
+            })?
+    } else {
+        None
+    };
 
     info!(
         "fetched full repo \"{}/{}\" in {:?}",

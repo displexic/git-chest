@@ -212,7 +212,7 @@ const Option = <T,>({
         }
       }}
       className={clsx(
-        "p-3 my-1 rounded-md flex w-full justify-between text-left",
+        "p-2 my-1 rounded-md flex w-full justify-between text-left",
         value === option.value
           ? "bg-secondary-hover font-semibold"
           : !option.disabled
@@ -224,7 +224,7 @@ const Option = <T,>({
     >
       <span className="flex">
         {option.icon && (
-          <option.icon className="h-5 w-5 mr-2 my-0.5 text-fg-tertiary" />
+          <option.icon className="h-5 w-5 mr-2 my-0 text-fg-tertiary" />
         )}
         <span className="text-sm">{option.label}</span>
       </span>

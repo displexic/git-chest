@@ -1,6 +1,4 @@
-use serde::Deserialize;
 use tauri::http::HeaderMap;
-use tracing::error;
 
 use crate::error::{AppError, AppResult};
 
@@ -36,17 +34,6 @@ pub fn parse_header<'a>(headers: &'a HeaderMap, header_name: &str) -> AppResult<
         .get(header_name)
         .and_then(|val| val.to_str().ok())
         .ok_or_else(|| AppError::Custom(format!("Failed to parse header: {header_name}")))
-}
-
-pub fn parse_body<'a, T>(body: &'a str, err_msg: &str) -> AppResult<T>
-where
-    T: Deserialize<'a>,
-{
-    Ok(serde_json::from_str::<T>(body).map_err(|e| {
-        error!("raw response body: {}", body);
-        error!("{:?}", e);
-        err_msg
-    })?)
 }
 
 /// Calculate the progress percentage with an unknown total.

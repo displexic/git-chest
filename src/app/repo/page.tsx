@@ -231,7 +231,7 @@ export default function Page() {
           </p>
         </div>
       ) : fullRepo ? (
-        <div>
+        <div className="">
           <div className="px-10 border-b border-border bg-bg-secondary">
             <div className="pt-5 flex justify-between">
               <div className="flex">
@@ -244,7 +244,7 @@ export default function Page() {
                 />
                 <span className="flex text-2xl ml-2">
                   <Link
-                    href={`/user?username${fullRepo.repo.user}`}
+                    href={`/user?id=${fullRepo.repo.user}`}
                     className="text-link hover:underline"
                   >
                     {fullRepo.repo.user}
@@ -298,7 +298,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="max-w-7xl mx-auto flex mt-5">
+          <div className="max-w-7xl mx-auto flex mt-5 px-10">
             <div className="w-full max-w-5xl">
               <div className="flex justify-between">
                 <div className="flex"></div>

@@ -198,7 +198,7 @@ const Option = <T,>({ option, index, value, handleSelect }: OptionProps<T>) => {
         }
       }}
       className={clsx(
-        "p-3 my-1 rounded-md flex w-full text-left",
+        "p-2 my-1 rounded-md flex w-full text-left",
         value?.includes(option.value)
           ? "bg-secondary-hover font-semibold"
           : "text-fg-secondary hover:bg-secondary active:bg-secondary-hover",
@@ -211,7 +211,7 @@ const Option = <T,>({ option, index, value, handleSelect }: OptionProps<T>) => {
         <RiCheckboxBlankCircleLine className="mt-0.5 h-4 w-4 text-fg-tertiary" />
       )}
       {option.icon && (
-        <option.icon className="h-5 w-5 ml-5 my-0.5 mr-2 text-fg-tertiary" />
+        <option.icon className="h-5 w-5 ml-3 my-0 mr-2 text-fg-tertiary" />
       )}
       <span className="text-sm">{option.label}</span>
     </button>

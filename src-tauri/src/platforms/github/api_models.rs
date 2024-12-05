@@ -39,7 +39,7 @@ pub struct GitHubApiRepo {
     pub full_name: String,
     pub private: bool,
     pub owner: GitHubApiRepoOwner,
-    pub description: String,
+    pub description: Option<String>,
     pub fork: bool,
     pub created_at: String,
     pub updated_at: String,

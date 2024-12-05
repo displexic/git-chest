@@ -96,7 +96,7 @@ export default function Home() {
               )}
             >
               <div className="relative flex">
-                <div className="h-10 w-10">
+                <div className="h-10 w-16">
                   <Image
                     src={convertFileSrc(repo.owner.avatar)}
                     width={30}
@@ -105,7 +105,7 @@ export default function Home() {
                     className="h-10 w-10 absolute top-1/2 -translate-y-1/2 rounded-full object-contain"
                   />
                 </div>
-                <div className="ml-4">
+                <div className="px-4">
                   <div className="flex mt-0.5">
                     <div className="flex relative text-xl">
                       <Image
@@ -116,7 +116,7 @@ export default function Home() {
                         className="mt-0.5 mr-1.5 rounded-lg"
                       />
                       <Link
-                        href={`/user?username=${repo.owner.user}`}
+                        href={`/user?id=${repo.owner.id}`}
                         className="text-link hover:underline"
                       >
                         {repo.owner.user}

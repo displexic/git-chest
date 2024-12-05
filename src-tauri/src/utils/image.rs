@@ -1,4 +1,5 @@
-use tracing::error;
+use tokio::time::Instant;
+use tracing::{error, info};
 
 use crate::error::{AppError, AppResult};
 
@@ -33,6 +34,8 @@ fn ext_from_content_type(content_type: &str) -> Option<String> {
 }
 
 pub async fn download_image(url: &str) -> AppResult<(Vec<u8>, Option<String>)> {
+    let start = Instant::now();
+
     let res = reqwest::get(url).await.map_err(|e| {
         error!("{:?}", e);
         format!("Error downloading image: {}", url)
@@ -57,6 +60,8 @@ pub async fn download_image(url: &str) -> AppResult<(Vec<u8>, Option<String>)> {
             "Error getting bytes from response"
         })?
         .to_vec();
+
+    info!("Downloaded image in {:?} ({})", start.elapsed(), url);
 
     Ok((bytes, file_ext))
 }

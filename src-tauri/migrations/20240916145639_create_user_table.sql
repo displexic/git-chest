@@ -16,7 +16,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_user_user on user (user);
 CREATE TABLE IF NOT EXISTS user_avatar (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
-    platform TEXT NOT NULL,
     ext TEXT, 
     url TEXT NOT NULL,
     FOREIGN KEY (user_id)

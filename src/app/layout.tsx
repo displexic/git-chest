@@ -37,6 +37,7 @@ export default function RootLayout({
     setTimeout(disableDrag, 500);
   }, [pathname, params]);
 
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="absolute top-0 right-0 bottom-0 left-0 no-select cursor-default">

@@ -3,7 +3,7 @@ use sqlx::prelude::FromRow;
 
 /// Excluding `repo_id`.
 #[derive(Serialize, FromRow)]
-pub struct GitHubRepo {
+pub struct DbGitHubRepo {
     pub id: i32,
     node_id: String,
     name: String,
@@ -43,7 +43,7 @@ pub struct GitHubRepo {
 
 /// Excluding `github_repo_id`.
 #[derive(Serialize, FromRow)]
-pub struct GitHubRepoOwner {
+pub struct DbGitHubRepoOwner {
     login: String,
     id: i32,
     node_id: String,
@@ -54,7 +54,7 @@ pub struct GitHubRepoOwner {
 
 /// Excluding `github_repo_id`.
 #[derive(Serialize, FromRow)]
-pub struct GitHubRepoOrg {
+pub struct DbGitHubRepoOrg {
     login: String,
     id: i32,
     node_id: String,
@@ -65,7 +65,7 @@ pub struct GitHubRepoOrg {
 
 /// Excluding `github_repo_id`.
 #[derive(Serialize, FromRow)]
-pub struct GitHubRepoLicense {
+pub struct DbGitHubRepoLicense {
     key: String,
     name: String,
     spdx_id: String,
@@ -74,23 +74,23 @@ pub struct GitHubRepoLicense {
 
 /// Excluding `github_repo_id`.
 #[derive(Serialize, FromRow)]
-pub struct GitHubRepoCustomProperty {
+pub struct DbGitHubRepoCustomProperty {
     key: String,
     value: String,
 }
 
 #[derive(Serialize)]
 pub struct GitHubRepoData {
-    pub repo: GitHubRepo,
-    pub owner: GitHubRepoOwner,
-    pub org: Option<GitHubRepoOrg>,
+    pub repo: DbGitHubRepo,
+    pub owner: DbGitHubRepoOwner,
+    pub org: Option<DbGitHubRepoOrg>,
     pub topics: Vec<String>,
-    pub license: GitHubRepoLicense,
-    pub custom_properties: Vec<GitHubRepoCustomProperty>,
+    pub license: DbGitHubRepoLicense,
+    pub custom_properties: Vec<DbGitHubRepoCustomProperty>,
 }
 
 #[derive(Serialize, FromRow)]
-pub struct GitHubUser {
+pub struct DbGitHubUser {
     pub login: String,
     pub id: i32,
     pub node_id: String,
@@ -102,7 +102,7 @@ pub struct GitHubUser {
     pub company: Option<String>,
     pub blog: String,
     pub location: Option<String>,
-    pub hireable: bool,
+    pub hireable: Option<bool>,
     pub bio: Option<String>,
     pub twitter_username: Option<String>,
     pub public_repos: i32,
@@ -115,5 +115,5 @@ pub struct GitHubUser {
 
 #[derive(Serialize)]
 pub struct GitHubUserData {
-    pub user: GitHubUser,
+    pub user: DbGitHubUser,
 }

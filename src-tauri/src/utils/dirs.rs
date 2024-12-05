@@ -44,3 +44,30 @@ pub async fn ensure_dirs() -> AppResult<()> {
 
     Ok(())
 }
+
+pub enum DataPath<'a> {
+    Avatars,
+    Avatar(&'a str),
+    ReadmeAssets((&'a str, &'a str)),
+}
+
+impl<'a> DataPath<'a> {
+    pub fn path(&self) -> PathBuf {
+        let dir_str = match self {
+            Self::Avatars => "assets/avatars",
+            Self::Avatar(file_path) => &format!("assets/avatars/{file_path}"),
+            Self::ReadmeAssets((user, repo)) => &format!("assets/repos/{user}/{repo}/readme"),
+        };
+        get_data_dir().join(dir_str)
+    }
+
+    /// Ensure that the required directories exist. Creates it if it doesn't exist.
+    pub async fn ensure(&self) -> AppResult<PathBuf> {
+        match self {
+            Self::Avatars => ensure_dir(&self.path()).await?,
+            Self::Avatar(_) => ensure_dir(&Self::Avatars.path()).await?,
+            Self::ReadmeAssets(_) => ensure_dir(&self.path()).await?,
+        }
+        Ok(self.path())
+    }
+}

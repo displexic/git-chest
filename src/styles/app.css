@@ -164,29 +164,3 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* Toast */
-@keyframes toast-enter {
-  0% {
-    transform: translateX(100%);
-    /* max-height: 0; */
-    grid-template-rows: 0fr;
-  }
-  75% {
-    transform: translateX(-10%);
-    max-height: 100px;
-    grid-template-rows: 1fr;
-  }
-  100% {
-    transform: translateX(0);
-    max-height: 100px;
-    grid-template-rows: 1fr;
-  }
-}
-
-@keyframes toast-time-progress {
-  0% {
-    transform: scaleX(100%);
-  }
-  100% {
-    transform: scaleX(0%);
-  }
-}

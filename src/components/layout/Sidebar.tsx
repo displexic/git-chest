@@ -1,39 +1,28 @@
+import clsx from "clsx";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
-import Image from "next/image";
-import clsx from "clsx";
 
 import { IconType } from "react-icons";
 import {
-  HiGlobe,
-  HiOutlineCloud,
-  HiOutlineGlobe,
-  HiOutlineGlobeAlt,
-} from "react-icons/hi";
-import {
-  HiEye,
+  HiChartPie,
+  HiCog6Tooth,
   HiFolderOpen,
   HiHeart,
-  HiMiniMagnifyingGlass,
-  HiOutlineEye,
-  HiOutlineFolderOpen,
+  HiInbox,
+  HiMagnifyingGlass,
+  HiOutlineChartPie,
+  HiOutlineCog6Tooth,
+  HiOutlineFolder,
   HiOutlineHeart,
+  HiOutlineInbox,
+  HiOutlineMagnifyingGlass,
+  HiOutlineRocketLaunch,
   HiPlus,
+  HiRocketLaunch,
 } from "react-icons/hi2";
 
 import Tooltip from "@components/global/Tooltip/Tooltip";
-import {
-  RiArchive2Fill,
-  RiArchive2Line,
-  RiCompass3Fill,
-  RiCompass3Line,
-  RiEyeFill,
-  RiEyeLine,
-  RiHeart3Fill,
-  RiHeart3Line,
-} from "react-icons/ri";
-import { PiTreasureChestBold } from "react-icons/pi";
 
 interface SidebarLink {
   title: string;
@@ -46,31 +35,44 @@ interface SidebarLink {
 const links: SidebarLink[] = [
   {
     title: "Directory",
-    icon: RiArchive2Line,
-    activeIcon: RiArchive2Fill,
+    icon: HiOutlineFolder,
+    activeIcon: HiFolderOpen,
     href: "/",
   },
   {
     title: "Favorites",
-    icon: RiHeart3Line,
-    activeIcon: RiHeart3Fill,
+    icon: HiOutlineHeart,
+    activeIcon: HiHeart,
     activeClass: "text-rose-500",
     href: "/favorites",
   },
   {
-    title: "Watching",
-    icon: RiEyeLine,
-    activeIcon: RiEyeFill,
+    title: "Inbox",
+    icon: HiOutlineInbox,
+    activeIcon: HiInbox,
     activeClass: "text-lime-500",
     href: "/watching",
   },
-
   {
     title: "Explore",
-    icon: RiCompass3Line,
-    activeIcon: RiCompass3Fill,
+    icon: HiOutlineRocketLaunch,
+    activeIcon: HiRocketLaunch,
     activeClass: "text-cyan-400",
     href: "/explore",
+  },
+  {
+    title: "Analysis",
+    icon: HiOutlineChartPie,
+    activeIcon: HiChartPie,
+    activeClass: "text-purple-500",
+    href: "/analysis",
+  },
+  {
+    title: "Search",
+    icon: HiOutlineMagnifyingGlass,
+    activeIcon: HiMagnifyingGlass,
+    activeClass: "text-primary",
+    href: "/search",
   },
 ];
 
@@ -157,7 +159,7 @@ const Sidebar = () => {
                   "block p-2 rounded-md",
                   baseUrl === "/add"
                     ? "scale-90 bg-primary-active shadow-[0_0_5px_2px_rgba(var(--primary-active))]"
-                    : "text-primary-fg bg-primary hover:bg-primary-hover active:bg-primary-active",
+                    : "text-link hover:text-primary-fg active:text-primary-fg bg-primary/30 hover:bg-primary-hover active:bg-primary-active",
                 )}
                 href="/add"
               >
@@ -165,13 +167,19 @@ const Sidebar = () => {
               </Link>
             </Tooltip>
           </div>
+
+          <div className="absolute bottom-0">
+            <SidebarButton
+              title="Settings"
+              icon={HiOutlineCog6Tooth}
+              activeIcon={HiCog6Tooth}
+              activeClass="text-primary"
+              href="/settings"
+              baseUrl={baseUrl}
+            />
+          </div>
         </div>
       </div>
-
-      {/** 
-      <div className="relative min-w-60"></div>
-      <div className="absolute top-0 left-14 bottom-0 h-full min-w-60 max-w-60 bg-bg-secondary border-r border-border"></div>
-      */}
     </>
   );
 };

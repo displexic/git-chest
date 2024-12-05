@@ -11,11 +11,7 @@ use crate::{
     commands::repo::AddRepoProgress,
     error::AppResult,
     platforms::github::models::GitHubRepoData,
-    utils::{
-        data::progress_percentage,
-        dirs::{ensure_dir, get_data_dir},
-        image::download_image,
-    },
+    utils::{data::progress_percentage, dirs::DataPath, image::download_image, toast::Toast},
 };
 
 /// Basic repository data.
@@ -74,11 +70,25 @@ pub async fn download_readme_assets(
     let initial_progress = progress_percentage(2, total_steps as usize);
     AddRepoProgress::Readme.send(platform, user, repo, initial_progress, 2, total_steps, app);
 
-    let dir = get_data_dir().join(&format!("assets/repos/{user}/{repo}/readme"));
-    ensure_dir(&dir).await?;
+    let dir = DataPath::ReadmeAssets((user, repo)).ensure().await?;
 
     for (i, image) in images.into_iter().enumerate() {
-        let (bytes, ext) = download_image(&image.url).await?;
+        let mut bytes: Vec<u8> = Vec::new();
+        let mut ext: Option<String> = None;
+        match download_image(&image.url).await {
+            Ok(v) => {
+                bytes = v.0;
+                ext = v.1;
+            }
+            Err(_) => {
+                Toast::new()
+                    .title("Failed to download readme asset")
+                    .description(&format!("URL: {}", image.url))
+                    .error()
+                    .send(app);
+            }
+        }
+
         let ext_str = ext
             .as_ref()
             .map(|e| format!(".{e}"))
@@ -90,8 +100,8 @@ pub async fn download_readme_assets(
             .bind(repo_id)
             .bind("image")
             .bind(&ext)
-            .bind(&image.alt)
             .bind(&image.url)
+            .bind(&image.alt)
             .execute(pool)
             .await
             .map_err(|e| {
@@ -186,6 +196,7 @@ fn parse_images(text: &str) -> Vec<ParsedReadmeImage> {
     let image_re = Regex::new(r"\[!\[(.*?)\]\[(.*?)\]\]").unwrap();
     let link_re = Regex::new(r"\[(.*?)\]:\s*(\S+)").unwrap();
     let mut image_vars: HashMap<String, Option<String>> = HashMap::new();
+    // Find images where the URL is a variable.
     for cap in image_re.captures_iter(text) {
         let alt = cap[1].to_string();
         let optional_alt = if alt.is_empty() {
@@ -193,12 +204,17 @@ fn parse_images(text: &str) -> Vec<ParsedReadmeImage> {
         } else {
             Some(alt.to_string())
         };
-        let url = cap[2].to_string();
-        image_vars.insert(url, optional_alt);
+        let var_ref = cap[2].to_string();
+        image_vars.insert(var_ref, optional_alt);
     }
+    // Find the variables used for images.
     for cap in link_re.captures_iter(text) {
         let var = &cap[1];
         let src = &cap[2];
+
+        if !src.starts_with("https://") {
+            continue;
+        }
 
         if let Some(alt) = image_vars.get(var) {
             images.push(ParsedReadmeImage {
